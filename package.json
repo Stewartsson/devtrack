@@ -10,6 +10,7 @@
     "type-check": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:coverage": "vitest run --coverage",
     "supabase:generate-types": "npx supabase@latest gen types typescript --local > src/types/supabase.ts"
   },
   "dependencies": {
@@ -73,13 +74,12 @@
     "vitest": "^1.6.0"
   },
   "overrides": {
-    "glob": ">=10.5.0"
+    "glob": ">=10.5.0",
+    "serialize-javascript": "^6.0.2",
+    "esbuild": ">=0.25.0"
   },
   "engines": {
     "node": ">=20.0.0"
   },
-  "packageManager": "pnpm@9.0.0",
-  "overrides": {
-    "serialize-javascript": "^6.0.2"
-  }
+  "packageManager": "pnpm@9.0.0"
 }
