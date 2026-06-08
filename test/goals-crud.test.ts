@@ -97,6 +97,16 @@ describe("GET /api/goals", () => {
         const limitFn = vi.fn().mockResolvedValue({ data: goals, error: null });
         const orderFn = vi.fn().mockReturnValue({ limit: limitFn });
         const eqFn = vi.fn().mockReturnValue({ order: orderFn });
+    const limitFn = vi.fn().mockResolvedValue({ data: goals, error: null });
+    const orderFn = vi.fn().mockReturnValue({ limit: limitFn });
+    const eqFn = vi.fn().mockReturnValue({ order: orderFn });
+
+    const inOrderFn = vi.fn().mockResolvedValue({ data: [], error: null });
+    const inFn = vi.fn().mockReturnValue({ order: inOrderFn });
+    const eqFn2 = vi.fn().mockReturnValue({ in: inFn });
+
+    mocks.supabaseFrom.mockImplementation((table: string) => {
+      if (table === "goals") {
         return {
           select: vi.fn().mockReturnValue({ eq: eqFn }),
         };
@@ -107,10 +117,13 @@ describe("GET /api/goals", () => {
         const eqFn = vi.fn().mockReturnValue({ in: inFn });
         return {
           select: vi.fn().mockReturnValue({ eq: eqFn }),
+        return {
+          select: vi.fn().mockReturnValue({ eq: eqFn2 }),
         };
       }
       return {};
     });
+
     const res = await GET();
     expect(res.status).toBe(200);
     const body = await res.json();

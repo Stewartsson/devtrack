@@ -6,6 +6,7 @@ import {
   getAllAccounts,
   mergeMetrics,
 } from "@/lib/github-accounts";
+import { GitHubAuthError, githubAuthErrorResponse } from "@/lib/github-fetch";
 import {
   isMetricsCacheBypassed,
   METRICS_CACHE_TTL_SECONDS,
@@ -76,6 +77,7 @@ async function fetchDiscussionsMetrics(
       });
 
       if (!response.ok) {
+        if (response.status === 401) throw new GitHubAuthError();
         throw new Error("GitHub API error");
       }
 
@@ -122,6 +124,9 @@ export async function GET(req: NextRequest) {
   if (!session?.accessToken) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
+  if (session.error === "TokenRevoked") {
+    return githubAuthErrorResponse();
+  }
 
   const accountId = req.nextUrl.searchParams.get("accountId");
   const bypass = isMetricsCacheBypassed(req);
@@ -135,6 +140,7 @@ export async function GET(req: NextRequest) {
       });
       return Response.json(formatDiscussionsMetrics(result));
     } catch (e) {
+      if (e instanceof GitHubAuthError) return githubAuthErrorResponse();
       return Response.json({ error: "GitHub API error" }, { status: 502 });
     }
   }
@@ -203,6 +209,7 @@ export async function GET(req: NextRequest) {
     });
     return Response.json(formatDiscussionsMetrics(result));
   } catch (e) {
+    if (e instanceof GitHubAuthError) return githubAuthErrorResponse();
     return Response.json({ error: "GitHub API error" }, { status: 502 });
   }
 }

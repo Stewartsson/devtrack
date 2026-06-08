@@ -54,6 +54,8 @@ describe("User Settings API Endpoints", () => {
         weekly_digest_opt_in: false,
         discord_webhook_url: null,
         timezone: "UTC",
+        public_since: null,
+        show_weekly_goals: false,
       },
       error: null,
     });
@@ -82,6 +84,8 @@ describe("User Settings API Endpoints", () => {
                 weekly_digest_opt_in: updatesObj.weekly_digest_opt_in !== undefined ? updatesObj.weekly_digest_opt_in : false,
                 discord_webhook_url: updatesObj.discord_webhook_url !== undefined ? updatesObj.discord_webhook_url : null,
                 timezone: updatesObj.timezone !== undefined ? updatesObj.timezone : "UTC",
+                public_since: updatesObj.public_since !== undefined ? updatesObj.public_since : null,
+                show_weekly_goals: updatesObj.show_weekly_goals !== undefined ? updatesObj.show_weekly_goals : false,
               },
               error: null,
             }),
