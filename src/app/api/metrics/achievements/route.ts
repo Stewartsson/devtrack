@@ -15,8 +15,10 @@ export async function GET(req: NextRequest) {
 
   const session = sessionData.session;
   const accessToken = sessionData.accessToken;
+  const githubLogin = session.githubLogin as string;
+  const githubId = session.githubId as string;
 
-  const user = await resolveAppUser(session.githubId, session.githubLogin);
+  const user = await resolveAppUser(githubId, githubLogin);
 
   if (!user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
@@ -24,7 +26,7 @@ export async function GET(req: NextRequest) {
 
   const result = await syncGitHubAchievementsForUser({
     userId: user.id,
-    githubLogin: session.githubLogin,
+    githubLogin,
     token: accessToken,
     force: isMetricsCacheBypassed(req),
   });

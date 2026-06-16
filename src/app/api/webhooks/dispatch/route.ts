@@ -99,14 +99,17 @@ async function dispatchEventForUser(
 
 export async function GET(req: Request) {
   const sessionData = await getSessionWithToken();
+
   if (!sessionData || !sessionData.session.githubId || !sessionData.session.githubLogin) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const session = sessionData.session;
   const accessToken = sessionData.accessToken;
+  const githubLogin = session.githubLogin as string;
+  const githubId = session.githubId as string;
 
-  const user = await resolveAppUser(session.githubId, session.githubLogin);
+  const user = await resolveAppUser(githubId, githubLogin);
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
   const { searchParams } = new URL(req.url);
@@ -116,7 +119,7 @@ export async function GET(req: Request) {
     if (period === "daily") {
       await dispatchEventForUser(
         user.id,
-        session.githubLogin,
+        githubLogin,
         accessToken,
         "daily.summary",
         1
@@ -124,7 +127,7 @@ export async function GET(req: Request) {
     } else if (period === "weekly") {
       await dispatchEventForUser(
         user.id,
-        session.githubLogin,
+        githubLogin,
         accessToken,
         "weekly.summary",
         7
