@@ -22,6 +22,10 @@ import RepoAnalyticsExplorer from "@/components/repo-analytics/RepoAnalyticsExpl
 import PinnedReposWidget from "@/components/PinnedReposWidget";
 import TopRepos from "@/components/TopRepos";
 import InactiveRepositoriesCard from "@/components/InactiveRepositoriesCard";
+import StreakAtRiskBanner from "@/components/StreakAtRiskBanner";
+import ThrottleBanner from "@/components/ThrottleBanner";
+import CustomizableDashboard from "@/components/dashboard/CustomizableDashboard";
+import MilestonePlanner from "@/components/MilestonePlanner";
 
 const SkeletonCard = () => (
   <div
@@ -88,10 +92,6 @@ const PRReviewTrendChart = dynamic(
   () => import("@/components/PRReviewTrendChart"),
   { ssr: false, loading: () => <SkeletonCard /> },
 );
-import StreakAtRiskBanner from "@/components/StreakAtRiskBanner";
-import ThrottleBanner from "@/components/ThrottleBanner";
-import CustomizableDashboard from "@/components/dashboard/CustomizableDashboard";
-import MilestonePlanner from "@/components/MilestonePlanner";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
