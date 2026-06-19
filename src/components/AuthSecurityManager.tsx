@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { Shield, Key, Github, Chrome, CheckCircle2, Lock, Smartphone } from 'lucide-react';
+import { Shield, Key, Github, Chrome, CheckCircle2, Smartphone } from 'lucide-react';
 
 export default function AuthSecurityManager() {
   const supabase = createClientComponentClient();
@@ -12,7 +12,6 @@ export default function AuthSecurityManager() {
   const [verificationCode, setVerificationCode] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  // 1. OAuth 2.0 Integration Handler Providers Flow
   const handleOAuthSignIn = async (provider: 'github' | 'google') => {
     try {
       setLoading(provider);
@@ -30,14 +29,11 @@ export default function AuthSecurityManager() {
     }
   };
 
-  // 2. Multi-Factor Authentication (MFA) Setup Initialization
   const handleEnrollMFA = async () => {
     try {
       setLoading('mfa-enroll');
       setError(null);
-      
-      // Mimicking Supabase MFA TOTP enrollment routine parameters securely
-      const mockSecret = "JBSWY3DPEHPK3PXP"; // Simulated standard TOTP base32 token layout string
+      const mockSecret = "JBSWY3DPEHPK3PXP";
       setMfaSecret(mockSecret);
       setMfaStatus('enrolling');
       setLoading(null);
@@ -47,7 +43,6 @@ export default function AuthSecurityManager() {
     }
   };
 
-  // 3. MFA Challenge Verification Validation Algos
   const handleVerifyMFA = async (e: React.FormEvent) => {
     e.preventDefault();
     if (verificationCode.length !== 6) {
@@ -58,8 +53,6 @@ export default function AuthSecurityManager() {
     try {
       setLoading('mfa-verify');
       setError(null);
-
-      // Verify validation security constraints matching standard audit logs
       setMfaStatus('verified');
       setLoading(null);
     } catch (err: any) {
@@ -70,7 +63,6 @@ export default function AuthSecurityManager() {
 
   return (
     <div className="w-full max-w-2xl mx-auto p-6 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-zinc-900 shadow-sm space-y-6">
-      {/* Module Header Panel Section */}
       <div className="flex items-center gap-3 border-b border-gray-100 dark:border-gray-800 pb-4">
         <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400">
           <Shield className="w-6 h-6" />
@@ -89,7 +81,6 @@ export default function AuthSecurityManager() {
         </div>
       )}
 
-      {/* 🔐 SECTION 1: OAuth 2.0 Identity Federation Providers */}
       <div className="space-y-3">
         <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
           <Key className="w-3.5 h-3.5" />
@@ -115,7 +106,6 @@ export default function AuthSecurityManager() {
         </div>
       </div>
 
-      {/* 🛡️ SECTION 2: Multi-Factor Authentication (MFA) Support Panel */}
       <div className="border-t border-gray-100 dark:border-gray-800 pt-5 space-y-4">
         <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
           <Smartphone className="w-3.5 h-3.5" />
@@ -143,7 +133,6 @@ export default function AuthSecurityManager() {
         {mfaStatus === 'enrolling' && mfaSecret && (
           <div className="p-4 border border-blue-100 dark:border-blue-900/50 rounded-xl bg-blue-50/20 dark:bg-blue-950/10 space-y-4">
             <div className="flex flex-col sm:flex-row gap-4 items-center">
-              {/* Mock TOTP QR Matrix Vector Representation Container */}
               <div className="w-24 h-24 bg-zinc-900 rounded-lg flex items-center justify-center p-2 shrink-0 border border-gray-200 dark:border-gray-800">
                 <div className="w-full h-full border border-dashed border-zinc-700 flex flex-wrap p-1 gap-1">
                   {Array.from({ length: 16 }).map((_, i) => (
@@ -197,4 +186,3 @@ export default function AuthSecurityManager() {
     </div>
   );
 }
-
