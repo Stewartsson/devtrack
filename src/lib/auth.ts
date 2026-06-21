@@ -5,12 +5,18 @@ import { supabaseAdmin } from "@/lib/supabase";
 
 // --- Interfaces & Types ---
 
+/**
+ * Explicitly typed GitHub profile to replace implicit any access.
+ */
 interface GitHubProfile extends Profile {
   id: number;
   login: string;
   email?: string;
 }
 
+/**
+ * Extend NextAuth modules to include our custom session/token properties.
+ */
 declare module "next-auth" {
   interface Session extends DefaultSession {
     accessToken?: string;
@@ -39,6 +45,7 @@ const GITHUB_API = "https://api.github.com";
 const isPlaywrightServer = process.env.PLAYWRIGHT_SERVER_MODE === "start";
 
 export const authOptions: NextAuthOptions = {
+  // Gracefully handle Playwright testing environments by forcing non-secure cookies
   ...(isPlaywrightServer ? { useSecureCookies: false } : {}),
   providers: [
     GitHubProvider({
@@ -61,6 +68,10 @@ export const authOptions: NextAuthOptions = {
     maxAge: SESSION_MAX_AGE,
   },
   callbacks: {
+    /**
+     * signIn: Validates user identity and performs best-effort DB synchronization.
+     * Uses explicit type assertions and defensive checks for Supabase connectivity.
+     */
     async signIn({ account, profile }): Promise<boolean> {
       if (account?.provider === "github" && profile) {
         const githubProfile = profile as GitHubProfile;
@@ -85,8 +96,8 @@ export const authOptions: NextAuthOptions = {
             .select("id")
             .single();
 
+          // Resilience: handle schema-mismatched errors (42703) during migrations
           if (upsertError && upsertError.code === "42703") {
-            // Fallback for pending migrations
             await supabaseAdmin.from("users").upsert({
               github_id: String(githubProfile.id),
               github_login: githubProfile.login,
@@ -98,11 +109,11 @@ export const authOptions: NextAuthOptions = {
 
           if (user?.id && account.access_token) {
             await syncGitHubAchievementsForUser({
-              userId: user.id,
+              userId: user.id as string,
               githubLogin: githubProfile.login,
               token: account.access_token,
               force: true,
-            }).catch((err) => console.error("[auth] Sync failed:", err));
+            }).catch((err: unknown) => console.error("[auth] Sync failed:", err));
           }
         } catch (error) {
           console.error("[auth] Non-fatal signIn callback error:", error);
@@ -110,6 +121,10 @@ export const authOptions: NextAuthOptions = {
       }
       return true;
     },
+
+    /**
+     * jwt: Handles persistent token management and liveness verification.
+     */
     async jwt({ token, account, profile, user }) {
       if (account?.access_token) {
         token.accessToken = account.access_token;
@@ -122,9 +137,10 @@ export const authOptions: NextAuthOptions = {
         token.githubLogin = p.login;
       } else if (user && !token.githubId) {
         token.githubId = user.id;
-        token.githubLogin = (user as any).login ?? "mock-user";
+        token.githubLogin = (user as { login?: string }).login ?? "mock-user";
       }
 
+      // Perform periodic liveness checks for token revocation
       if (
         !account &&
         token.accessToken &&
@@ -143,12 +159,16 @@ export const authOptions: NextAuthOptions = {
             token.accessTokenValidatedAt = Date.now();
           }
         } catch {
-          // Silent catch: retry on next request
+          // Failure to reach GitHub does not invalidate session; retry on next hit
         }
       }
 
       return token;
     },
+
+    /**
+     * session: Exposes validated token/profile data to the client.
+     */
     async session({ session, token }) {
       session.accessToken = token.accessToken;
       session.githubId = token.githubId;
