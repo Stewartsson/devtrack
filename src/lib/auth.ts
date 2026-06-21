@@ -4,11 +4,6 @@ import GitHubProvider from "next-auth/providers/github";
 import { syncGitHubAchievementsForUser } from "@/lib/github-achievements";
 import { supabaseAdmin } from "@/lib/supabase";
 
-// --- Interfaces & Types ---
-
-/**
- * Explicitly typed GitHub profile to replace implicit any access.
- */
 interface GitHubProfile extends Profile {
   id: number;
   login: string;
@@ -16,9 +11,6 @@ interface GitHubProfile extends Profile {
   avatar_url?: string;
 }
 
-/**
- * Extend NextAuth modules to include our custom session/token properties.
- */
 declare module "next-auth" {
   interface Session extends DefaultSession {
     accessToken?: string;
@@ -38,16 +30,13 @@ declare module "next-auth/jwt" {
   }
 }
 
-// --- Configuration ---
-
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
 const SESSION_UPDATE_AGE = 24 * 60 * 60;
 const TOKEN_VALIDATION_INTERVAL_MS = 24 * 60 * 60 * 1000;
-const GITHUB_API = "https://api.github.com";
+const GITHUB_API = "https://github.com";
 const isPlaywrightServer = process.env.PLAYWRIGHT_SERVER_MODE === "start";
 
 export const authOptions: NextAuthOptions = {
-  // Gracefully handle Playwright testing environments by forcing non-secure cookies
   ...(isPlaywrightServer ? { useSecureCookies: false } : {}),
   providers: [
     GitHubProvider({
@@ -70,19 +59,13 @@ export const authOptions: NextAuthOptions = {
     maxAge: SESSION_MAX_AGE,
   },
   callbacks: {
-    /**
-     * signIn: Validates user identity and performs best-effort DB synchronization.
-     * Uses explicit type assertions and defensive checks for Supabase connectivity.
-     */
     async signIn({ account, profile }): Promise<boolean> {
       if (account?.provider === "github" && profile) {
         const githubProfile = profile as GitHubProfile;
-
         if (!supabaseAdmin) {
           console.warn("[auth] supabaseAdmin not configured; skipping DB upsert.");
           return true;
         }
-
         try {
           const { data: user, error: upsertError } = await supabaseAdmin
             .from("users")
@@ -98,7 +81,6 @@ export const authOptions: NextAuthOptions = {
             .select("id")
             .single();
 
-          // Resilience: handle schema-mismatched errors (42703) during migrations
           if (upsertError && upsertError.code === "42703") {
             await supabaseAdmin.from("users").upsert({
               github_id: String(githubProfile.id),
@@ -124,17 +106,12 @@ export const authOptions: NextAuthOptions = {
       return true;
     },
 
-    /**
-     * jwt: Handles persistent token management and liveness verification.
-     */
     async jwt({ token, account, profile, user }) {
       const jwtToken = token as JWT;
-
       if (account?.access_token) {
         jwtToken.accessToken = account.access_token;
         jwtToken.accessTokenValidatedAt = Date.now();
       }
-
       if (profile) {
         const p = profile as GitHubProfile;
         jwtToken.githubId = String(p.id);
@@ -144,7 +121,6 @@ export const authOptions: NextAuthOptions = {
         jwtToken.githubLogin = (user as Record<string, unknown>).login as string ?? "mock-user";
       }
 
-      // Perform periodic liveness checks for token revocation
       if (
         !account &&
         jwtToken.accessToken &&
@@ -163,16 +139,12 @@ export const authOptions: NextAuthOptions = {
             jwtToken.accessTokenValidatedAt = Date.now();
           }
         } catch {
-          // Failure to reach GitHub does not invalidate session; retry on next hit
+          // Failure to reach GitHub does not invalidate session
         }
       }
-
       return jwtToken;
     },
 
-    /**
-     * session: Exposes validated token/profile data to the client.
-     */
     async session({ session, token }) {
       const jwtToken = token as JWT;
       session.accessToken = jwtToken.accessToken;
@@ -184,4 +156,3 @@ export const authOptions: NextAuthOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET,
 };
-
