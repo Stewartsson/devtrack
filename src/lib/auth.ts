@@ -33,7 +33,7 @@ declare module "next-auth/jwt" {
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
 const SESSION_UPDATE_AGE = 24 * 60 * 60;
 const TOKEN_VALIDATION_INTERVAL_MS = 24 * 60 * 60 * 1000;
-const GITHUB_API = "https://github.com";
+const GITHUB_API = "https://api.github.com";
 const isPlaywrightServer = process.env.PLAYWRIGHT_SERVER_MODE === "start";
 
 export const authOptions: NextAuthOptions = {
