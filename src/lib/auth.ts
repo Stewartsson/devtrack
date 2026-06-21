@@ -1,4 +1,5 @@
 import { type NextAuthOptions, type DefaultSession, type Account, type Profile, type User } from "next-auth";
+import { type JWT } from "next-auth/jwt";
 import GitHubProvider from "next-auth/providers/github";
 import { syncGitHubAchievementsForUser } from "@/lib/github-achievements";
 import { supabaseAdmin } from "@/lib/supabase";
@@ -12,6 +13,7 @@ interface GitHubProfile extends Profile {
   id: number;
   login: string;
   email?: string;
+  avatar_url?: string;
 }
 
 /**
@@ -126,56 +128,60 @@ export const authOptions: NextAuthOptions = {
      * jwt: Handles persistent token management and liveness verification.
      */
     async jwt({ token, account, profile, user }) {
+      const jwtToken = token as JWT;
+
       if (account?.access_token) {
-        token.accessToken = account.access_token;
-        token.accessTokenValidatedAt = Date.now();
+        jwtToken.accessToken = account.access_token;
+        jwtToken.accessTokenValidatedAt = Date.now();
       }
 
       if (profile) {
         const p = profile as GitHubProfile;
-        token.githubId = String(p.id);
-        token.githubLogin = p.login;
-      } else if (user && !token.githubId) {
-        token.githubId = user.id;
-        token.githubLogin = (user as { login?: string }).login ?? "mock-user";
+        jwtToken.githubId = String(p.id);
+        jwtToken.githubLogin = p.login;
+      } else if (user && !jwtToken.githubId) {
+        jwtToken.githubId = user.id;
+        jwtToken.githubLogin = (user as Record<string, unknown>).login as string ?? "mock-user";
       }
 
       // Perform periodic liveness checks for token revocation
       if (
         !account &&
-        token.accessToken &&
-        typeof token.accessTokenValidatedAt === "number" &&
-        !token.error &&
-        Date.now() - token.accessTokenValidatedAt > TOKEN_VALIDATION_INTERVAL_MS
+        jwtToken.accessToken &&
+        typeof jwtToken.accessTokenValidatedAt === "number" &&
+        !jwtToken.error &&
+        Date.now() - jwtToken.accessTokenValidatedAt > TOKEN_VALIDATION_INTERVAL_MS
       ) {
         try {
           const res = await fetch(`${GITHUB_API}/user`, {
-            headers: { Authorization: `Bearer ${token.accessToken}` },
+            headers: { Authorization: `Bearer ${jwtToken.accessToken}` },
             cache: "no-store",
           });
           if (res.status === 401) {
-            token.error = "TokenRevoked";
+            jwtToken.error = "TokenRevoked";
           } else if (res.ok) {
-            token.accessTokenValidatedAt = Date.now();
+            jwtToken.accessTokenValidatedAt = Date.now();
           }
         } catch {
           // Failure to reach GitHub does not invalidate session; retry on next hit
         }
       }
 
-      return token;
+      return jwtToken;
     },
 
     /**
      * session: Exposes validated token/profile data to the client.
      */
     async session({ session, token }) {
-      session.accessToken = token.accessToken;
-      session.githubId = token.githubId;
-      session.githubLogin = token.githubLogin;
-      session.error = token.error;
+      const jwtToken = token as JWT;
+      session.accessToken = jwtToken.accessToken;
+      session.githubId = jwtToken.githubId;
+      session.githubLogin = jwtToken.githubLogin;
+      session.error = jwtToken.error;
       return session;
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
 };
+
