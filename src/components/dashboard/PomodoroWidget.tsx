@@ -59,9 +59,10 @@ export default function PomodoroWidget() {
   };
 
   const triggerCompletionNotification = () => {
-    // Subtle non-intrusive HTML5 Web Audio API synthesization mapping context
+    // Subtle non-intrusive HTML5 Web Audio API synthesization mapping context without forbidden 'any'
     try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioContextClass = window.AudioContext || (window as unknown as Record<string, typeof AudioContext>).webkitAudioContext;
+      const audioCtx = new AudioContextClass();
       const oscillator = audioCtx.createOscillator();
       const gainNode = audioCtx.createGain();
       oscillator.connect(gainNode);
@@ -211,4 +212,3 @@ export default function PomodoroWidget() {
     </div>
   );
 }
-
