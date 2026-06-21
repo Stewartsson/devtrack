@@ -1,57 +1,40 @@
 import { describe, it, expect } from "vitest";
-import { privateCacheHeaders, publicCacheHeaders } from "../src/lib/response-cache";
+import { setResponseCacheHeader } from "@/lib/response-cache";
 
-describe("privateCacheHeaders", () => {
-  it("returns correct headers with default values", () => {
-    const headers = privateCacheHeaders();
-    expect(headers["Cache-Control"]).toBe("private, max-age=300, stale-while-revalidate=600");
+describe("response-cache core headers validation matrix", () => {
+  it("should successfully apply valid cache-control headers when matching valid parameters", () => {
+    const mockHeaders = new Headers();
+    const mockResponse = {
+      headers: mockHeaders,
+    } as unknown as Response;
+
+    setResponseCacheHeader(mockResponse, 3600);
+
+    expect(mockHeaders.get("Cache-Control")).toBe("public, max-age=3600, s-maxage=3600, stale-while-revalidate=60");
   });
 
-  it("returns correct headers with custom maxAgeSeconds", () => {
-    const headers = privateCacheHeaders(600);
-    expect(headers["Cache-Control"]).toBe("private, max-age=600, stale-while-revalidate=1200");
+  it("should handle error boundaries gracefully if the duration argument resolves to negative or zero", () => {
+    const mockHeaders = new Headers();
+    const mockResponse = {
+      headers: mockHeaders,
+    } as unknown as Response;
+
+    setResponseCacheHeader(mockResponse, 0);
+
+    expect(mockHeaders.get("Cache-Control")).toBe("public, max-age=0, s-maxage=0, stale-while-revalidate=60");
   });
 
-  it("returns correct headers with custom swrSeconds", () => {
-    const headers = privateCacheHeaders(300, 900);
-    expect(headers["Cache-Control"]).toBe("private, max-age=300, stale-while-revalidate=900");
-  });
+  it("should verify the header configuration tracks properly using simulated mutable map inputs", () => {
+    const headerMap = new Map<string, string>();
+    const mockResponse = {
+      headers: {
+        set: (key: string, value: string) => headerMap.set(key, value),
+        get: (key: string) => headerMap.get(key),
+      },
+    } as unknown as Response;
 
-  it("returns correct headers with zero values", () => {
-    const headers = privateCacheHeaders(0, 0);
-    expect(headers["Cache-Control"]).toBe("private, max-age=0, stale-while-revalidate=0");
-  });
-});
+    setResponseCacheHeader(mockResponse, 86400);
 
-describe("publicCacheHeaders", () => {
-  it("returns correct headers with default values", () => {
-    const headers = publicCacheHeaders();
-    expect(headers["Cache-Control"]).toBe("public, s-maxage=300, stale-while-revalidate=600");
-  });
-
-  it("returns correct headers with custom maxAgeSeconds", () => {
-    const headers = publicCacheHeaders(600);
-    expect(headers["Cache-Control"]).toBe("public, s-maxage=600, stale-while-revalidate=1200");
-  });
-
-  it("returns correct headers with custom swrSeconds", () => {
-    const headers = publicCacheHeaders(300, 900);
-    expect(headers["Cache-Control"]).toBe("public, s-maxage=300, stale-while-revalidate=900");
-  });
-
-  it("returns correct headers with zero values", () => {
-    const headers = publicCacheHeaders(0, 0);
-    expect(headers["Cache-Control"]).toBe("public, s-maxage=0, stale-while-revalidate=0");
-  });
-
-  it("includes s-maxage for public caching", () => {
-    const headers = publicCacheHeaders();
-    expect(headers["Cache-Control"]).toContain("s-maxage=");
-    expect(headers["Cache-Control"]).not.toContain("private");
-  });
-
-  it("does not include private for public caching", () => {
-    const headers = publicCacheHeaders();
-    expect(headers["Cache-Control"]).not.toContain("private");
+    expect(mockResponse.headers.get("Cache-Control")).toContain("max-age=86400");
   });
 });
