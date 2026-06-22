@@ -1,5 +1,5 @@
 // A valid GitHub repository identifier is exactly "owner/repo".
-const REPO_IDENTIFIER_RE =
+export const REPO_IDENTIFIER_RE =
   /^([a-zA-Z0-9](?:[a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?)\/([a-zA-Z0-9._-]{1,100})$/;
 
 export interface ParsedRepo {
