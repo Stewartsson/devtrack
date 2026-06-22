@@ -6,9 +6,10 @@ describe("response-cache core headers validation matrix", () => {
     const mockHeaders = new Headers();
     const mockResponse = {
       headers: mockHeaders,
-    } as unknown as Response;
+    };
 
-    setResponseCacheHeader(mockResponse, 3600);
+    // Cast explicitly inside the invocation parameter argument to isolate extended edge methods safely
+    setResponseCacheHeader(mockResponse as unknown as Response, 3600);
 
     expect(mockHeaders.get("Cache-Control")).toBe("public, max-age=3600, s-maxage=3600, stale-while-revalidate=60");
   });
@@ -17,9 +18,9 @@ describe("response-cache core headers validation matrix", () => {
     const mockHeaders = new Headers();
     const mockResponse = {
       headers: mockHeaders,
-    } as unknown as Response;
+    };
 
-    setResponseCacheHeader(mockResponse, 0);
+    setResponseCacheHeader(mockResponse as unknown as Response, 0);
 
     expect(mockHeaders.get("Cache-Control")).toBe("public, max-age=0, s-maxage=0, stale-while-revalidate=60");
   });
@@ -31,9 +32,9 @@ describe("response-cache core headers validation matrix", () => {
         set: (key: string, value: string) => headerMap.set(key, value),
         get: (key: string) => headerMap.get(key),
       },
-    } as unknown as Response;
+    };
 
-    setResponseCacheHeader(mockResponse, 86400);
+    setResponseCacheHeader(mockResponse as unknown as Response, 86400);
 
     expect(mockResponse.headers.get("Cache-Control")).toContain("max-age=86400");
   });
