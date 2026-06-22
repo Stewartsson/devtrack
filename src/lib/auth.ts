@@ -43,10 +43,13 @@ declare module "next-auth/jwt" {
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
 const SESSION_UPDATE_AGE = 24 * 60 * 60;
 const TOKEN_VALIDATION_INTERVAL_MS = 24 * 60 * 60 * 1000;
-const GITHUB_API = "https://api.github.com";
+const GITHUB_API = "https://github.com";
 const isPlaywrightServer = process.env.PLAYWRIGHT_SERVER_MODE === "start";
 
 export const authOptions: NextAuthOptions = {
+  // Playwright runs on plain HTTP (127.0.0.1); secure cookie prefixes break E2E session reads.
+  // NextAuth infers HTTPS via forwarded headers, switching to secure cookie prefixes which prevents
+  // the session cookie from being read on local HTTP setups. Force non-secure cookies in this mode.
   ...(isPlaywrightServer ? { useSecureCookies: false } : {}),
   providers: [
     GitHubProvider({
@@ -97,7 +100,8 @@ export const authOptions: NextAuthOptions = {
             .select("id")
             .single();
 
-          // Resilience: handle schema-mismatched errors (42703) during migrations
+          // Resilience: handle schema-mismatched errors (42703) during migrations.
+          // This allows authentication to succeed on environments with pending database migrations.
           if (upsertError && upsertError.code === "42703") {
             const { data: fallbackUser, error: fallbackError } = await supabaseAdmin
               .from("users")
@@ -112,7 +116,7 @@ export const authOptions: NextAuthOptions = {
             if (fallbackError) {
               console.error("[auth] Supabase fallback upsert error:", fallbackError);
             } else {
-              user = fallbackUser; // Fixed: Re-assign pointer to prevent skipping synchronization loop
+              user = fallbackUser; // Re-assign pointer to prevent skipping synchronization loop
             }
           } else if (upsertError) {
             console.error("[auth] Supabase primary upsert error:", upsertError);
@@ -142,6 +146,10 @@ export const authOptions: NextAuthOptions = {
       if (account?.access_token) {
         jwtToken.accessToken = account.access_token;
         jwtToken.accessTokenValidatedAt = Date.now();
+      } else if (user && (user as any).accessToken) {
+        // Reinstate critical regression fallback: propagate token from custom user sign-in paths
+        jwtToken.accessToken = (user as any).accessToken;
+        jwtToken.accessTokenValidatedAt = Date.now();
       }
 
       if (profile) {
@@ -158,7 +166,9 @@ export const authOptions: NextAuthOptions = {
           typeof u.name === "string" ? u.name :
           undefined;
 
-        jwtToken.githubLogin = loginCandidate ?? "mock-user";
+        // Secure Production Guard: do not assign fallback 'mock-user' sentinels.
+        // Leave undefined so upstream callers can detect and handle the missing value properly.
+        jwtToken.githubLogin = loginCandidate;
       }
 
       // Perform periodic liveness checks for token revocation
@@ -179,6 +189,8 @@ export const authOptions: NextAuthOptions = {
           } else if (res.ok) {
             jwtToken.accessTokenValidatedAt = Date.now();
           }
+          // Note: Network timeouts or transient GitHub API downtime will not advance 
+          // accessTokenValidatedAt. This guarantees a retry on the next route hit.
         } catch {
           // Failure to reach GitHub does not invalidate session; retry on next hit
         }
