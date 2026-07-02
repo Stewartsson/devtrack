@@ -16,6 +16,7 @@ import DashboardSSEProvider from "@/components/DashboardSSEProvider";
 import { DashboardWidgetA11yProvider } from "@/components/dashboard/DashboardWidgetA11yContext";
 import RoastHypeWidget from "./RoastHypeWidget";
 
+
 export default async function DashboardPage() {
   // In the production standalone Playwright build, getServerSession can fail to
   // read the test JWT cookie. Decode the cookie directly as a fallback so that
@@ -49,7 +50,7 @@ export default async function DashboardPage() {
   return (
     <DashboardSSEProvider>
       <DashboardWidgetA11yProvider>
-        <div className="min-h-screen bg-[var(--background)] px-4 py-8 text-[var(--foreground)] transition-colors sm:px-6 lg:px-8 max-w-[1600px] mx-auto">
+        <main className="min-h-screen bg-[var(--background)] px-4 py-8 text-[var(--foreground)] transition-colors sm:px-6 lg:px-8 max-w-[1600px] mx-auto">
           <DashboardHeader />
 
           <div className="mt-6 space-y-8">
@@ -145,7 +146,7 @@ export default async function DashboardPage() {
               <MilestonePlanner />
             </section>
           </div>
-        </div>
+        </main>
       </DashboardWidgetA11yProvider>
     </DashboardSSEProvider>
   );
